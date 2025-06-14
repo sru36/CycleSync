@@ -1,0 +1,374 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 330 81% 60%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 330 81% 60%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 330 81% 60%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 330 81% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+}
+
+@layer components {
+  .period-gradient {
+    background: linear-gradient(135deg, #ff6b8a 0%, #c4a3ff 100%);
+  }
+
+  .ovulation-gradient {
+    background: linear-gradient(135deg, #ff9f7a 0%, #ffd93d 100%);
+  }
+
+  .follicular-gradient {
+    background: linear-gradient(135deg, #a8e6cf 0%, #7fd3b3 100%);
+  }
+
+  .luteal-gradient {
+    background: linear-gradient(135deg, #c4a3ff 0%, #a584e6 100%);
+  }
+
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .floating-card {
+    @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/20 shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+}
+
+@layer utilities {
+  .text-period {
+    color: #ff6b8a;
+  }
+
+  .bg-period {
+    background-color: #ff6b8a;
+  }
+
+  .text-ovulation {
+    color: #3b82f6;
+  }
+
+  .bg-ovulation {
+    background-color: #3b82f6;
+  }
+
+  .text-follicular {
+    color: #10b981;
+  }
+
+  .bg-follicular {
+    background-color: #10b981;
+  }
+
+  .text-luteal {
+    color: #8b5cf6;
+  }
+
+  .bg-luteal {
+    background-color: #8b5cf6;
+  }
+
+  .text-fertile {
+    color: #f59e0b;
+  }
+
+  .bg-fertile {
+    background-color: #f59e0b;
+  }
+
+  /* Exact visible soft gradient backgrounds from screenshot */
+  .gradient-period {
+    background: linear-gradient(135deg, #f472b6 0%, #a78bfa 100%);
+  }
+
+  .bg-gradient-period {
+    background: linear-gradient(135deg, #f472b6 0%, #a78bfa 100%);
+  }
+
+  /* Exact visible soft button gradients from screenshot */
+  .btn-gradient-pink {
+    background: linear-gradient(135deg, #f472b6 0%, #a78bfa 100%);
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+  }
+
+  .btn-gradient-pink:hover {
+    background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(244, 114, 182, 0.3);
+  }
+
+  /* Blue gradient for pregnancy planning */
+  .btn-gradient-blue,
+  .btn-gradient-blue:focus,
+  .btn-gradient-blue:active,
+  button.btn-gradient-blue {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%) !important;
+    background-image: linear-gradient(
+      135deg,
+      #3b82f6 0%,
+      #1e40af 100%
+    ) !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease;
+  }
+
+  .btn-gradient-blue:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    background-image: linear-gradient(
+      135deg,
+      #2563eb 0%,
+      #1d4ed8 100%
+    ) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  }
+
+  /* Keep orange gradient as backup */
+  .btn-gradient-orange,
+  .btn-gradient-orange:focus,
+  .btn-gradient-orange:active,
+  button.btn-gradient-orange {
+    background: linear-gradient(135deg, #ff8a50 0%, #ffd93d 100%) !important;
+    background-image: linear-gradient(
+      135deg,
+      #ff8a50 0%,
+      #ffd93d 100%
+    ) !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease;
+  }
+
+  .btn-gradient-orange:hover {
+    background: linear-gradient(135deg, #ff6b35 0%, #ffcd3c 100%) !important;
+    background-image: linear-gradient(
+      135deg,
+      #ff6b35 0%,
+      #ffcd3c 100%
+    ) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px rgba(255, 138, 80, 0.3);
+  }
+  /* Exact visible soft gradient text matching screenshot */
+  .gradient-text-brand {
+    background: linear-gradient(135deg, #f472b6 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 700;
+  }
+
+  /* Dark mode: white gradient text only */
+  .dark .gradient-text-brand {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Hero title gradient - exact visible soft gradient from screenshot */
+  .gradient-text-hero {
+    background: linear-gradient(135deg, #f472b6 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 700;
+  }
+
+  /* Dark mode hero: white gradient */
+  .dark .gradient-text-hero {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .gradient-period {
+    background: linear-gradient(135deg, #ff6b8a 0%, #e91e63 100%);
+  }
+
+  .gradient-ovulation {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  }
+
+  .bg-gradient-ovulation {
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 640px) {
+    /* Ensure touch targets are at least 44px */
+    .btn-touch {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Better spacing for mobile */
+    .mobile-padding {
+      padding: 1rem;
+    }
+
+    /* Prevent zoom on inputs on iOS */
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+
+    /* Better modal sizing on mobile */
+    .mobile-modal {
+      margin: 1rem;
+      width: calc(100% - 2rem);
+      max-height: calc(100vh - 2rem);
+    }
+
+    /* Improve touch scrolling */
+    .touch-scroll {
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .tablet-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Desktop optimizations */
+  @media (min-width: 1025px) {
+    .desktop-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(249 250 251);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgb(31 41 55);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(209 213 219);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(75 85 99);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(156 163 175);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+}
+
+/* Improve scrolling on iOS */
+@supports (-webkit-overflow-scrolling: touch) {
+  .scrollable {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Better focus states for accessibility */
+@media (prefers-reduced-motion: no-preference) {
+  *:focus-visible {
+    outline: 2px solid #ff6b8a;
+    outline-offset: 2px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .floating-card {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
