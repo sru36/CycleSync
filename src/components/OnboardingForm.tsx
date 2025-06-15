@@ -25,39 +25,41 @@ interface OnboardingFormProps {
 export function OnboardingForm({ onComplete, className }: OnboardingFormProps) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
+    name: "",
     age: "",
     weight: "",
     cycleLength: "",
     periodLength: "",
     lastPeriodDate: "",
-    trackingGoal: "" as "cycle_tracking" | "pregnancy_planning" | "",
-    email: "",
-    emailReminders: false,
+    trackingGoal: "" as "period_tracking" | "pregnancy_planning" | "",
+    emailNotifications: true,
   });
 
-  const updateFormData = (field: string, value: string) => {
+  const updateFormData = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const isStepValid = (stepNumber: number): boolean => {
     switch (stepNumber) {
       case 1:
-        return !!formData.trackingGoal;
+        return !!formData.name;
       case 2:
-        return !!(formData.age && formData.weight);
+        return !!formData.trackingGoal;
       case 3:
-        return !!(formData.cycleLength && formData.periodLength);
+        return !!(formData.age && formData.weight);
       case 4:
-        return !!formData.lastPeriodDate;
+        return !!(formData.cycleLength && formData.periodLength);
       case 5:
-        return true; // Email is optional
+        return !!formData.lastPeriodDate;
+      case 6:
+        return true; // Email notifications are optional
       default:
         return false;
     }
   };
 
   const handleNext = () => {
-    if (step < 5) {
+    if (step < 6) {
       setStep(step + 1);
     } else {
       handleComplete();
@@ -66,154 +68,140 @@ export function OnboardingForm({ onComplete, className }: OnboardingFormProps) {
 
   const handleComplete = () => {
     const profile: Omit<UserProfile, "id" | "createdAt" | "updatedAt"> = {
+      name: formData.name,
+      email: "", // Placeholder, will be overwritten in Onboarding.tsx
       age: parseInt(formData.age),
-      weight: parseFloat(formData.weight),
+      weight: parseInt(formData.weight),
       cycleLength: parseInt(formData.cycleLength),
       periodLength: parseInt(formData.periodLength),
       lastPeriodDate: new Date(formData.lastPeriodDate),
-      trackingGoal: formData.trackingGoal,
-      email: formData.email,
-      emailReminders: formData.emailReminders,
+      trackingGoal: formData.trackingGoal as "period_tracking" | "pregnancy_planning",
+      emailNotifications: formData.emailNotifications,
     };
     onComplete(profile);
   };
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <Target className="w-12 h-12 text-primary dark:text-white mx-auto" />
-              <h2 className="text-xl sm:text-2xl font-bold dark:text-gray-100">
-                What's your goal?
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                Choose what you'd like to track
-              </p>
+  return (
+    <Card className={cn("w-full", className)}>
+      <CardHeader>
+        <CardTitle className="text-center">
+          {step === 1 && "What's your name?"}
+          {step === 2 && "What's your goal?"}
+          {step === 3 && "Tell us about your cycle"}
+          {step === 4 && "When was your last period?"}
+          {step === 5 && "Email notifications"}
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Step 1: Name */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center mb-6">
+              <User className="w-12 h-12 text-primary" />
             </div>
-
-            <RadioGroup
-              value={formData.trackingGoal}
-              onValueChange={(value) => updateFormData("trackingGoal", value)}
-              className="space-y-4"
-            >
-              <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-primary transition-colors dark:hover:border-primary">
-                <RadioGroupItem value="cycle_tracking" id="cycle_tracking" />
-                <Label
-                  htmlFor="cycle_tracking"
-                  className="flex-1 cursor-pointer"
-                >
-                  <div className="font-medium dark:text-gray-100">
-                    Basic Cycle Tracking
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Track your periods, mood, and symptoms only
-                  </div>
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-primary transition-colors dark:hover:border-primary">
-                <RadioGroupItem
-                  value="pregnancy_planning"
-                  id="pregnancy_planning"
-                />
-                <Label
-                  htmlFor="pregnancy_planning"
-                  className="flex-1 cursor-pointer"
-                >
-                  <div className="font-medium dark:text-gray-100">
-                    Planning to get pregnant
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Get fertility insights, intercourse log, and highlighted
-                    fertile windows
-                  </div>
-                </Label>
-              </div>
-            </RadioGroup>
+            <div className="space-y-2">
+              <Label htmlFor="name">Your name</Label>
+              <Input
+                id="name"
+                placeholder="Enter your name"
+                value={formData.name}
+                onChange={(e) => updateFormData("name", e.target.value)}
+              />
+            </div>
           </div>
-        );
+        )}
 
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <User className="w-12 h-12 text-primary dark:text-white mx-auto" />
-              <h2 className="text-2xl font-bold dark:text-gray-100">
-                Tell us about yourself
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                This helps us provide better predictions
-              </p>
+        {/* Step 2: Tracking Goal */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center mb-6">
+              <Target className="w-12 h-12 text-primary" />
             </div>
-
             <div className="space-y-4">
+              <Label>What's your main goal?</Label>
+              <RadioGroup
+                value={formData.trackingGoal}
+                onValueChange={(value) =>
+                  updateFormData("trackingGoal", value)
+                }
+                className="space-y-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="period_tracking" id="period" />
+                  <Label htmlFor="period">Track my period and cycle</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pregnancy_planning" id="pregnancy" />
+                  <Label htmlFor="pregnancy">Plan for pregnancy</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Age and Weight */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center mb-6">
+              <User className="w-12 h-12 text-primary" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="age">Age</Label>
                 <Input
                   id="age"
                   type="number"
-                  placeholder="25"
+                  min="10"
+                  max="100"
+                  placeholder="Enter your age"
                   value={formData.age}
                   onChange={(e) => updateFormData("age", e.target.value)}
-                  className="text-center text-lg"
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="weight">Weight (kg)</Label>
                 <Input
                   id="weight"
                   type="number"
-                  placeholder="60"
+                  min="20"
+                  max="200"
+                  placeholder="Enter your weight"
                   value={formData.weight}
                   onChange={(e) => updateFormData("weight", e.target.value)}
-                  className="text-center text-lg"
                 />
               </div>
             </div>
           </div>
-        );
+        )}
 
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <Heart className="w-12 h-12 text-primary dark:text-white mx-auto" />
-              <h2 className="text-2xl font-bold dark:text-gray-100">
-                Your cycle details
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Help us understand your typical cycle
-              </p>
+        {/* Step 4: Cycle Details */}
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center mb-6">
+              <Calendar className="w-12 h-12 text-primary" />
             </div>
-
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cycleLength">Typical cycle length (days)</Label>
+                <Label htmlFor="cycleLength">Cycle length (days)</Label>
                 <Select
                   value={formData.cycleLength}
                   onValueChange={(value) =>
                     updateFormData("cycleLength", value)
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select cycle length" />
+                  <SelectTrigger id="cycleLength">
+                    <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="26">26 days</SelectItem>
-                    <SelectItem value="27">27 days</SelectItem>
-                    <SelectItem value="28">28 days (average)</SelectItem>
-                    <SelectItem value="29">29 days</SelectItem>
-                    <SelectItem value="30">30 days</SelectItem>
-                    <SelectItem value="31">31 days</SelectItem>
-                    <SelectItem value="32">32 days</SelectItem>
-                    <SelectItem value="35">35+ days</SelectItem>
+                    {Array.from({ length: 10 }, (_, i) => i + 21).map((days) => (
+                      <SelectItem key={days} value={days.toString()}>
+                        {days} days
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="periodLength">Period length (days)</Label>
                 <Select
@@ -222,149 +210,72 @@ export function OnboardingForm({ onComplete, className }: OnboardingFormProps) {
                     updateFormData("periodLength", value)
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select period length" />
+                  <SelectTrigger id="periodLength">
+                    <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="3">3 days</SelectItem>
-                    <SelectItem value="4">4 days</SelectItem>
-                    <SelectItem value="5">5 days (average)</SelectItem>
-                    <SelectItem value="6">6 days</SelectItem>
-                    <SelectItem value="7">7 days</SelectItem>
-                    <SelectItem value="8">8+ days</SelectItem>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((days) => (
+                      <SelectItem key={days} value={days.toString()}>
+                        {days} days
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </div>
-        );
+        )}
 
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <Calendar className="w-12 h-12 text-primary dark:text-white mx-auto" />
-              <h2 className="text-2xl font-bold dark:text-gray-100">
-                When was your last period?
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                First day of your most recent period
-              </p>
+        {/* Step 5: Last Period */}
+        {step === 5 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center mb-6">
+              <Calendar className="w-12 h-12 text-primary" />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="lastPeriodDate">Last period start date</Label>
+              <Label htmlFor="lastPeriodDate">When did your last period start?</Label>
               <Input
                 id="lastPeriodDate"
                 type="date"
                 value={formData.lastPeriodDate}
-                onChange={(e) =>
-                  updateFormData("lastPeriodDate", e.target.value)
-                }
-                className="text-center text-lg"
+                onChange={(e) => updateFormData("lastPeriodDate", e.target.value)}
               />
             </div>
           </div>
-        );
+        )}
 
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <Mail className="w-12 h-12 text-primary dark:text-white mx-auto" />
-              <h2 className="text-2xl font-bold dark:text-gray-100">
-                Email Reminders
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Get helpful notifications about your cycle (optional)
-              </p>
+        {/* Step 6: Email Notifications */}
+        {step === 6 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-center mb-6">
+              <Mail className="w-12 h-12 text-primary" />
             </div>
-
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address (Optional)</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={formData.email}
-                  onChange={(e) => updateFormData("email", e.target.value)}
-                  className="text-center text-lg"
+              <Label>Would you like to receive email notifications?</Label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="emailNotifications"
+                  checked={formData.emailNotifications}
+                  onChange={(e) =>
+                    updateFormData("emailNotifications", e.target.checked)
+                  }
+                  className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
                 />
-              </div>
-
-              {formData.email && (
-                <div className="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                  <input
-                    type="checkbox"
-                    id="emailReminders"
-                    checked={formData.emailReminders}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        emailReminders: e.target.checked,
-                      }))
-                    }
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                  />
-                  <Label
-                    htmlFor="emailReminders"
-                    className="flex-1 cursor-pointer"
-                  >
-                    <div className="font-medium text-blue-900 dark:text-blue-100">
-                      Enable Email Reminders
-                    </div>
-                    <div className="text-sm text-blue-700 dark:text-blue-300">
-                      Period predictions, ovulation alerts, and helpful tips
-                    </div>
-                  </Label>
-                </div>
-              )}
-
-              <div className="text-center text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                🔒 Your email is secure and will only be used for cycle
-                notifications. You can change these settings anytime.
+                <Label htmlFor="emailNotifications">
+                  Send me reminders about my period and cycle
+                </Label>
               </div>
             </div>
           </div>
-        );
+        )}
 
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <Card
-      className={cn(
-        "w-full max-w-md mx-auto dark:bg-gray-800 dark:border-gray-700 mx-4 sm:mx-auto",
-        className,
-      )}
-    >
-      <CardHeader className="text-center">
-        <div className="flex justify-center space-x-1 sm:space-x-2 mb-3 sm:mb-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className={cn(
-                "w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300",
-                i <= step ? "bg-primary" : "bg-gray-200 dark:bg-gray-600",
-              )}
-            />
-          ))}
-        </div>
-        <CardTitle className="text-base sm:text-lg">Step {step} of 5</CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-        {renderStep()}
-
-        <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
+        {/* Navigation */}
+        <div className="flex justify-between pt-4">
           {step > 1 && (
             <Button
               variant="outline"
               onClick={() => setStep(step - 1)}
-              className="flex-1"
             >
               Back
             </Button>
@@ -372,14 +283,9 @@ export function OnboardingForm({ onComplete, className }: OnboardingFormProps) {
           <Button
             onClick={handleNext}
             disabled={!isStepValid(step)}
-            className={cn(
-              "flex-1 font-semibold",
-              !isStepValid(step)
-                ? "bg-gray-300 hover:bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "btn-gradient-pink text-white",
-            )}
+            className={step === 1 ? "w-full" : ""}
           >
-            {step === 5 ? "Complete" : "Next"}
+            {step === 6 ? "Complete" : "Next"}
           </Button>
         </div>
       </CardContent>

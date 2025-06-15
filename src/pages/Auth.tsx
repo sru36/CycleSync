@@ -30,9 +30,13 @@ import {
   type SignupData,
   type LoginData,
 } from "../lib/auth-types";
+import { auth } from "../lib/auth";
+import { useToast } from "../components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,40 +83,102 @@ export default function Auth() {
     return newErrors.length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setIsLoading(true);
-
     try {
-      if (mode === "signup") {
-        const signupData: SignupData = {
-          email,
-          password,
-          wantsEmailReminders: false, // We'll ask this after email verification
-        };
-
-        const user = await mockSignup(signupData);
+      const { user } = await auth.signUp(email, password);
+      if (user) {
+        toast({
+          title: "Success!",
+          description: "Please check your email to verify your account.",
+        });
         setShowEmailVerification(true);
-      } else {
-        const loginData: LoginData = { email, password };
-        const user = await mockLogin(loginData);
-        navigate("/dashboard");
+        // Do not navigate to onboarding until verified
       }
-    } catch (error) {
-      setErrors([
-        error instanceof Error ? error.message : "Authentication failed",
-      ]);
+    } catch (error: any) {
+      if (error?.message?.toLowerCase().includes("user already registered") || error?.message?.toLowerCase().includes("duplicate")) {
+        toast({
+          title: "Error",
+          description: "This email is already registered. Please log in or use a different email.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to sign up",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEmailVerification = () => {
-    setShowEmailVerification(false);
-    setShowReminderOptIn(true);
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setIsLoading(true);
+    try {
+      const { user } = await auth.signIn(email, password);
+      if (user) {
+        // Always fetch the latest user object
+        const currentUser = await auth.getCurrentUser();
+        if (!currentUser?.email_confirmed_at && !currentUser?.confirmed_at) {
+          toast({
+            title: "Email Not Verified",
+            description: "Please verify your email before continuing.",
+            variant: "destructive",
+          });
+          setShowEmailVerification(true);
+          return;
+        }
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in.",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to log in",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailVerification = async () => {
+    setIsLoading(true);
+    try {
+      // Poll for verification status
+      const poll = async (retries = 10) => {
+        for (let i = 0; i < retries; i++) {
+          const user = await auth.getCurrentUser();
+          if (user?.email_confirmed_at || user?.confirmed_at) {
+            setShowEmailVerification(false);
+            setShowReminderOptIn(true);
+            toast({
+              title: "Email Verified!",
+              description: "Your email has been verified. You can continue.",
+            });
+            return;
+          }
+          await new Promise((res) => setTimeout(res, 2000));
+        }
+        toast({
+          title: "Still Not Verified",
+          description: "We couldn't verify your email yet. Please try again.",
+          variant: "destructive",
+        });
+      };
+      await poll();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleReminderOptIn = (optIn: boolean) => {
@@ -125,6 +191,23 @@ export default function Auth() {
     // Navigate to onboarding or dashboard
     const hasProfile = localStorage.getItem("userProfile");
     navigate(hasProfile ? "/dashboard" : "/onboarding");
+  };
+
+  // Add resend verification handler
+  const handleResendVerification = async () => {
+    try {
+      await auth.resendVerificationEmail(email);
+      toast({
+        title: "Verification Email Sent",
+        description: "A new verification email has been sent. Please check your inbox.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to resend verification email.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (showEmailVerification) {
@@ -171,7 +254,7 @@ export default function Auth() {
             <div className="text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Didn't receive the email? Check your spam folder or{" "}
-                <button className="text-primary hover:underline">
+                <button type="button" className="text-primary hover:underline" onClick={handleResendVerification}>
                   resend verification
                 </button>
               </p>
@@ -257,9 +340,7 @@ export default function Auth() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-period rounded-lg flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
-                </div>
+                <Heart className="w-5 h-5 text-white bg-gradient-period rounded-lg p-1" />
                 <span className="text-xl font-bold bg-gradient-period bg-clip-text text-transparent">
                   CycleSync
                 </span>
@@ -284,160 +365,217 @@ export default function Auth() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`pl-10 ${emailError ? "border-red-500" : ""}`}
-                    required
-                  />
-                </div>
-                {emailError && (
-                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    {emailError}
-                  </p>
-                )}
-              </div>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder={
-                      mode === "login"
-                        ? "Enter your password"
-                        : "Create a strong password"
-                    }
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`pl-10 pr-10 ${passwordErrors.length > 0 ? "border-red-500" : ""}`}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Password Requirements (for signup) */}
-                {mode === "signup" && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Password must contain:
-                    </p>
-                    <div className="space-y-1">
-                      <div
-                        className={`text-xs flex items-center gap-2 ${password.length >= 8 ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
-                      >
-                        {password.length >= 8 ? (
-                          <Check className="w-3 h-3" />
-                        ) : (
-                          <div className="w-3 h-3 border border-current rounded-full" />
-                        )}
-                        At least 8 characters
-                      </div>
-                      <div
-                        className={`text-xs flex items-center gap-2 ${/\d/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
-                      >
-                        {/\d/.test(password) ? (
-                          <Check className="w-3 h-3" />
-                        ) : (
-                          <div className="w-3 h-3 border border-current rounded-full" />
-                        )}
-                        At least one number
-                      </div>
-                      <div
-                        className={`text-xs flex items-center gap-2 ${/[a-z]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
-                      >
-                        {/[a-z]/.test(password) ? (
-                          <Check className="w-3 h-3" />
-                        ) : (
-                          <div className="w-3 h-3 border border-current rounded-full" />
-                        )}
-                        One lowercase letter
-                      </div>
-                      <div
-                        className={`text-xs flex items-center gap-2 ${/[A-Z]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
-                      >
-                        {/[A-Z]/.test(password) ? (
-                          <Check className="w-3 h-3" />
-                        ) : (
-                          <div className="w-3 h-3 border border-current rounded-full" />
-                        )}
-                        One uppercase letter
-                      </div>
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`pl-10 ${emailError ? "border-red-500" : ""}`}
+                        required
+                      />
                     </div>
-                  </div>
-                )}
-
-                {passwordErrors.length > 0 && (
-                  <div className="space-y-1">
-                    {passwordErrors.map((error, index) => (
-                      <p
-                        key={index}
-                        className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                      >
+                    {emailError && (
+                      <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        {error}
+                        {emailError}
                       </p>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Error Messages */}
-              {errors.length > 0 && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  {errors.map((error, index) => (
-                    <p
-                      key={index}
-                      className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
-                    >
-                      <AlertCircle className="w-3 h-3" />
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )}
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`pl-10 pr-10 ${passwordErrors.length > 0 ? "border-red-500" : ""}`}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
 
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full bg-gradient-period hover:opacity-90 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {mode === "login" ? "Signing In..." : "Creating Account..."}
-                  </>
-                ) : mode === "login" ? (
-                  "Sign In"
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
-            </form>
+                    {passwordErrors.length > 0 && (
+                      <div className="space-y-1">
+                        {passwordErrors.map((error, index) => (
+                          <p
+                            key={index}
+                            className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1"
+                          >
+                            <AlertCircle className="w-3 h-3" />
+                            {error}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-period hover:opacity-90 text-white"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : "Login"}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="signup">
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`pl-10 ${emailError ? "border-red-500" : ""}`}
+                        required
+                      />
+                    </div>
+                    {emailError && (
+                      <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {emailError}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`pl-10 pr-10 ${passwordErrors.length > 0 ? "border-red-500" : ""}`}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Password Requirements (for signup) */}
+                    {mode === "signup" && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          Password must contain:
+                        </p>
+                        <div className="space-y-1">
+                          <div
+                            className={`text-xs flex items-center gap-2 ${password.length >= 8 ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
+                          >
+                            {password.length >= 8 ? (
+                              <Check className="w-3 h-3" />
+                            ) : (
+                              <div className="w-3 h-3 border border-current rounded-full" />
+                            )}
+                            At least 8 characters
+                          </div>
+                          <div
+                            className={`text-xs flex items-center gap-2 ${/\d/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
+                          >
+                            {/\d/.test(password) ? (
+                              <Check className="w-3 h-3" />
+                            ) : (
+                              <div className="w-3 h-3 border border-current rounded-full" />
+                            )}
+                            At least one number
+                          </div>
+                          <div
+                            className={`text-xs flex items-center gap-2 ${/[a-z]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
+                          >
+                            {/[a-z]/.test(password) ? (
+                              <Check className="w-3 h-3" />
+                            ) : (
+                              <div className="w-3 h-3 border border-current rounded-full" />
+                            )}
+                            One lowercase letter
+                          </div>
+                          <div
+                            className={`text-xs flex items-center gap-2 ${/[A-Z]/.test(password) ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"}`}
+                          >
+                            {/[A-Z]/.test(password) ? (
+                              <Check className="w-3 h-3" />
+                            ) : (
+                              <div className="w-3 h-3 border border-current rounded-full" />
+                            )}
+                            One uppercase letter
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-period hover:opacity-90 text-white"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : "Create Account"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
 
             {/* Mode Toggle */}
             <div className="mt-6 text-center">

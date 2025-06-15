@@ -68,7 +68,7 @@ export default function Index() {
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <Button
-              onClick={() => navigate("/onboarding")}
+              onClick={() => navigate("/auth")}
               className="btn-gradient-pink text-white text-sm sm:text-base px-3 sm:px-4 font-semibold"
               size="sm"
             >
@@ -99,7 +99,7 @@ export default function Index() {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
             <Button
               size="lg"
-              onClick={() => navigate("/onboarding")}
+              onClick={() => navigate("/auth")}
               className="btn-gradient-pink text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg w-full sm:w-auto font-semibold"
             >
               Start Tracking Free
@@ -238,8 +238,8 @@ export default function Index() {
               <li>• Smart period reminders</li>
             </ul>
             <Button
-              onClick={() => navigate("/onboarding")}
-              className="w-full btn-gradient-pink text-white font-semibold"
+              className="w-full mt-6 btn-gradient-pink text-white font-semibold"
+              onClick={() => navigate("/auth")}
             >
               Start Cycle Tracking
             </Button>
@@ -263,8 +263,8 @@ export default function Index() {
               <li>• Conception probability tracking</li>
             </ul>
             <Button
-              onClick={() => navigate("/onboarding")}
-              className="w-full btn-gradient-blue text-white font-semibold"
+              className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+              onClick={() => navigate("/auth")}
             >
               Start Pregnancy Planning
             </Button>

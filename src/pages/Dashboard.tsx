@@ -29,96 +29,157 @@ import {
   getPhaseLabel,
   getPhaseColor,
 } from "../lib/cycle-calculations";
+import { auth } from "../lib/auth";
+import { cycle } from "../lib/cycle";
+import { toast } from "../components/ui/use-toast";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [showMoodTracker, setShowMoodTracker] = useState(false);
+  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showEmailSettings, setShowEmailSettings] = useState(false);
   const [showFertilityInsights, setShowFertilityInsights] = useState(false);
-  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Load user profile from localStorage (in a real app, this would come from your backend)
-    const stored = localStorage.getItem("userProfile");
-    if (stored) {
-      const profile = JSON.parse(stored);
-      profile.lastPeriodDate = new Date(profile.lastPeriodDate);
-      setUserProfile(profile);
-    } else {
-      navigate("/onboarding");
-    }
-
-    // Load mood entries
-    const storedMoods = localStorage.getItem("moodEntries");
-    if (storedMoods) {
-      const entries = JSON.parse(storedMoods).map((entry: any) => ({
-        ...entry,
-        date: new Date(entry.date),
-        createdAt: new Date(entry.createdAt),
-      }));
-      setMoodEntries(entries);
-    }
+    (async () => {
+      const user = await auth.getCurrentUser();
+      if (!user || (!user.email_confirmed_at && !user.confirmed_at)) {
+        toast({
+          title: "Email Not Verified",
+          description: "Please verify your email before accessing the dashboard.",
+          variant: "destructive",
+        });
+        setIsVerified(false);
+        navigate("/auth");
+      } else {
+        setIsVerified(true);
+      }
+    })();
   }, [navigate]);
 
-  const handleMoodSave = (entry: Partial<MoodEntry>) => {
-    if (!userProfile) return;
+  useEffect(() => {
+    loadUserData();
+  }, []);
 
-    const newEntry: MoodEntry = {
-      id: "mood-" + Date.now(),
-      userId: userProfile.id,
-      date: entry.date!,
-      mood: entry.mood!,
-      symptoms: entry.symptoms || [],
-      crampsLevel: entry.crampsLevel || 0,
-      energyLevel: entry.energyLevel || 5,
-      notes: entry.notes || "",
-      createdAt: new Date(),
-    };
+  const loadUserData = async () => {
+    try {
+      setIsLoading(true);
+      const user = await auth.getCurrentUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
-    const updatedEntries = [
-      ...moodEntries.filter((e) => !isSameDay(e.date, newEntry.date)),
-      newEntry,
-    ];
-    setMoodEntries(updatedEntries);
-    localStorage.setItem("moodEntries", JSON.stringify(updatedEntries));
-    setShowMoodTracker(false);
+      const profile = await auth.getProfile(user.id);
+      setUserProfile(profile);
+
+      const entries = await cycle.getMoodEntries(user.id);
+      setMoodEntries(entries);
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const getTodaysMoodEntry = (): Partial<MoodEntry> | undefined => {
-    return moodEntries.find((entry) => isSameDay(entry.date, new Date()));
+  const handleMoodSave = async (entry: Partial<MoodEntry>) => {
+    try {
+      const user = await auth.getCurrentUser();
+      if (!user) return;
+
+      const newEntry = await cycle.addMoodEntry(
+        user.id,
+        entry.mood!,
+        entry.pain_level!,
+        entry.notes
+      );
+      setMoodEntries((prev) => [...prev, newEntry]);
+      toast({
+        title: "Success",
+        description: "Mood entry saved successfully",
+      });
+    } catch (error) {
+      console.error("Error saving mood entry:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save mood entry. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (isVerified === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p>Checking verification status...</p>
+        </div>
+      </div>
+    );
+  }
+  if (!isVerified) return null;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!userProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Loading your profile...</p>
+          <p className="mb-4">No profile found. Please complete onboarding.</p>
+          <Button onClick={() => navigate("/onboarding")}>
+            Complete Onboarding
+          </Button>
         </div>
       </div>
     );
   }
 
   const prediction = calculateNextPeriod(userProfile);
-  const todaysMood = getTodaysMoodEntry();
+  const isPeriodSoon = prediction.daysUntilPeriod <= 2;
+  const isPeriodNow = prediction.daysUntilPeriod <= 0;
 
   return (
     <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm border-b border-white/20 dark:border-gray-700/20 sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+      <nav className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm border-b border-white/20 dark:border-gray-700/20">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-pink-500 rounded-lg flex items-center justify-center">
-                <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-period rounded-lg flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold bg-gradient-period bg-clip-text text-transparent">
+                  CycleSync
+                </span>
               </div>
-              <span className="text-xl sm:text-2xl font-bold gradient-text-brand">
-                CycleSync
-              </span>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEmailSettings(true)}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Email Settings
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -127,7 +188,6 @@ export default function Dashboard() {
                 <Users className="w-4 h-4 mr-2" />
                 Partner Sync
               </Button>
-              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="sm"
@@ -135,267 +195,92 @@ export default function Dashboard() {
               >
                 <Settings className="w-4 h-4" />
               </Button>
+              <ThemeToggle />
             </div>
           </div>
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        {/* Welcome Section */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Welcome back! 👋
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-            Track your cycle, log your mood, and get personalized insights.
-          </p>
-        </div>
-
-        {/* Current Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <Card className="floating-card dark:bg-gray-800/80 dark:border-gray-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5" />
-                Current Cycle
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Period Status */}
+          <Card className="md:col-span-2 lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Cycle Status</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFertilityInsights(true)}
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  View Insights
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Phase</span>
-                  <Badge
-                    className="text-white"
-                    style={{ backgroundColor: getPhaseColor(prediction.phase) }}
-                  >
-                    {getPhaseLabel(prediction.phase)}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Cycle Day</span>
-                  <span className="font-semibold">{prediction.cycleDay}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
-                    Days until period
-                  </span>
-                  <span className="font-semibold text-period">
-                    {prediction.daysUntilPeriod}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="floating-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Next Predictions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Next Period</span>
-                  <span className="font-semibold">
-                    {format(prediction.nextPeriodDate, "MMM d")}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Next Ovulation</span>
-                  <span className="font-semibold">
-                    {format(prediction.nextOvulationDate, "MMM d")}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Fertile Window</span>
-                  <span className="font-semibold text-fertile">
-                    {format(prediction.fertileDaysStart, "MMM d")} -{" "}
-                    {format(prediction.fertileDaysEnd, "MMM d")}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="floating-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Heart className="w-5 h-5" />
-                Today's Mood
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {todaysMood ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">
-                      {todaysMood.mood === "excellent"
-                        ? "😊"
-                        : todaysMood.mood === "good"
-                          ? "🙂"
-                          : todaysMood.mood === "okay"
-                            ? "😐"
-                            : todaysMood.mood === "low"
-                              ? "😔"
-                              : "😢"}
-                    </span>
-                    <span className="font-semibold capitalize">
-                      {todaysMood.mood}
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMoodTracker(true)}
-                    className="w-full"
-                  >
-                    Update Mood
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-3">
-                    How are you feeling today?
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">
+                    {isPeriodNow
+                      ? "Your period has started"
+                      : isPeriodSoon
+                      ? `Period in ${prediction.daysUntilPeriod} days`
+                      : `${prediction.daysUntilPeriod} days until next period`}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Current phase: {getPhaseLabel(prediction.phase)}
                   </p>
-                  <Button
-                    onClick={() => setShowMoodTracker(true)}
-                    className="w-full bg-pink-500 hover:bg-pink-600 text-white"
-                  >
-                    Log Mood
-                  </Button>
                 </div>
-              )}
+                <Badge
+                  className={`text-lg px-4 py-2 ${getPhaseColor(
+                    prediction.phase
+                  )}`}
+                >
+                  {prediction.phase.toUpperCase()}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Calendar */}
-          <div className="lg:col-span-2">
-            <Calendar
-              userProfile={userProfile}
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-            />
-          </div>
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Calendar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Calendar userProfile={userProfile} />
+            </CardContent>
+          </Card>
 
-          {/* Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Quick Actions */}
-            <Card className="floating-card">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => setShowMoodTracker(true)}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Heart className="w-4 h-4 mr-2" />
-                  Log Today's Mood
-                </Button>
-
-                {userProfile.trackingGoal === "pregnancy_planning" && (
-                  <Button
-                    className="w-full justify-start"
-                    variant="outline"
-                    onClick={() => setShowFertilityInsights(true)}
-                  >
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Fertility Insights
-                  </Button>
-                )}
-
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => setShowEmailSettings(true)}
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email Settings
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Intercourse Log - Only for pregnancy planning */}
-            {userProfile.trackingGoal === "pregnancy_planning" && (
-              <IntercourseLog userId={userProfile.id} />
-            )}
-
-            {/* Recent Insights */}
-            <Card className="floating-card">
-              <CardHeader>
-                <CardTitle className="text-lg">Insights</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-3 bg-period/10 rounded-lg">
-                  <p className="text-sm font-medium text-period">
-                    Period Reminder
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Your period is expected in {prediction.daysUntilPeriod}{" "}
-                    days. We'll send you a reminder 2 days before.
-                  </p>
-                </div>
-
-                {userProfile.trackingGoal === "pregnancy_planning" &&
-                  prediction.phase === "ovulation" && (
-                    <div className="p-3 bg-fertile/10 rounded-lg">
-                      <p className="text-sm font-medium text-fertile">
-                        Fertility Window
-                      </p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        You're in your fertile window! This is an optimal time
-                        for conception.
-                      </p>
-                    </div>
-                  )}
-
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700">
-                    Cycle Pattern
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Your cycles have been regular with an average length of{" "}
-                    {userProfile.cycleLength} days.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Mood Tracker Modal */}
-      {showMoodTracker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto">
-            <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Track Your Mood
-              </h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMoodTracker(false)}
-              >
-                ×
-              </Button>
-            </div>
-            <div className="p-3 sm:p-4">
+          {/* Mood Tracker */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Mood Tracker</CardTitle>
+            </CardHeader>
+            <CardContent>
               <MoodTracker
                 date={new Date()}
                 onSave={handleMoodSave}
-                existingEntry={todaysMood}
+                existingEntry={moodEntries.find((entry) =>
+                  isSameDay(new Date(entry.createdAt), new Date())
+                )}
               />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* Intercourse Log */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Intercourse Log</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <IntercourseLog userId={userProfile.id} />
+            </CardContent>
+          </Card>
         </div>
-      )}
+      </div>
 
       {/* Email Settings Dialog */}
       <EmailSettingsDialog
@@ -404,14 +289,12 @@ export default function Dashboard() {
       />
 
       {/* Fertility Insights Dialog */}
-      {userProfile && (
-        <FertilityInsightsDialog
-          isOpen={showFertilityInsights}
-          onClose={() => setShowFertilityInsights(false)}
-          userProfile={userProfile}
-          prediction={prediction}
-        />
-      )}
+      <FertilityInsightsDialog
+        isOpen={showFertilityInsights}
+        onClose={() => setShowFertilityInsights(false)}
+        userProfile={userProfile}
+        prediction={prediction}
+      />
     </div>
   );
 }

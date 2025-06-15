@@ -1,13 +1,16 @@
 export interface UserProfile {
   id: string;
+  email: string;
+  name: string;
   age: number;
   weight: number;
-  cycleLength: number; // 28, 29, 30, 31, 32+ days
-  periodLength: number; // 5-7+ days
   lastPeriodDate: Date;
-  trackingGoal: "cycle_tracking" | "pregnancy_planning";
-  email?: string;
-  emailReminders?: boolean;
+  cycleLength: number;
+  periodLength: number;
+  trackingGoal: "period_tracking" | "pregnancy_planning";
+  partnerCode?: string;
+  partnerId?: string;
+  emailNotifications: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,11 +29,10 @@ export interface MoodEntry {
   userId: string;
   date: Date;
   mood: "excellent" | "good" | "okay" | "low" | "terrible";
-  symptoms: string[];
-  crampsLevel: number; // 0-10
-  energyLevel: number; // 0-10
-  notes: string;
+  pain_level: number;
+  notes?: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface PeriodPrediction {
@@ -89,8 +91,7 @@ export interface IntercourseEntry {
   id: string;
   userId: string;
   date: Date;
-  time: string;
-  protectionUsed: "none" | "condom" | "withdrawal" | "other";
-  notes: string;
+  notes?: string;
   createdAt: Date;
+  updatedAt: Date;
 }

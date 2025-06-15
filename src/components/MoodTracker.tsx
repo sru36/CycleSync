@@ -7,7 +7,15 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
-import { MOODS, SYMPTOMS, type MoodEntry, type Symptom } from "../lib/types";
+import type { MoodEntry } from "../lib/types";
+
+const MOODS = [
+  { value: "excellent", label: "Excellent", emoji: "😊" },
+  { value: "good", label: "Good", emoji: "🙂" },
+  { value: "okay", label: "Okay", emoji: "😐" },
+  { value: "low", label: "Low", emoji: "😔" },
+  { value: "terrible", label: "Terrible", emoji: "😢" },
+] as const;
 
 interface MoodTrackerProps {
   date?: Date;
@@ -22,46 +30,25 @@ export function MoodTracker({
   existingEntry,
   className,
 }: MoodTrackerProps) {
-  const [selectedMood, setSelectedMood] = useState<string>(
-    existingEntry?.mood || "",
+  const [selectedMood, setSelectedMood] = useState<MoodEntry['mood']>(
+    existingEntry?.mood || "okay"
   );
-  const [selectedSymptoms, setSelectedSymptoms] = useState<Symptom[]>(
-    existingEntry?.symptoms || [],
-  );
-  const [crampsLevel, setCrampsLevel] = useState(
-    existingEntry?.crampsLevel || 0,
-  );
-  const [energyLevel, setEnergyLevel] = useState(
-    existingEntry?.energyLevel || 5,
+  const [painLevel, setPainLevel] = useState(
+    existingEntry?.pain_level || 0
   );
   const [notes, setNotes] = useState(existingEntry?.notes || "");
-
-  const toggleSymptom = (symptom: Symptom) => {
-    setSelectedSymptoms((prev) =>
-      prev.includes(symptom)
-        ? prev.filter((s) => s !== symptom)
-        : [...prev, symptom],
-    );
-  };
 
   const handleSave = () => {
     const entry: Partial<MoodEntry> = {
       date,
-      mood: selectedMood as any,
-      symptoms: selectedSymptoms,
-      crampsLevel,
-      energyLevel,
+      mood: selectedMood,
+      pain_level: painLevel,
       notes,
     };
     onSave?.(entry);
   };
 
-  const isComplete =
-    selectedMood &&
-    (crampsLevel > 0 ||
-      energyLevel !== 5 ||
-      selectedSymptoms.length > 0 ||
-      notes);
+  const isComplete = selectedMood && (painLevel > 0 || notes);
 
   return (
     <Card
@@ -103,66 +90,21 @@ export function MoodTracker({
           </div>
         </div>
 
-        {/* Symptoms */}
-        <div className="space-y-3">
-          <Label className="text-base font-medium">Symptoms (if any)</Label>
-          <div className="flex flex-wrap gap-2">
-            {SYMPTOMS.map((symptom) => (
-              <Badge
-                key={symptom}
-                variant={
-                  selectedSymptoms.includes(symptom) ? "default" : "outline"
-                }
-                className={cn(
-                  "cursor-pointer transition-all duration-200 hover:scale-105",
-                  selectedSymptoms.includes(symptom) && "bg-primary text-white",
-                )}
-                onClick={() => toggleSymptom(symptom)}
-              >
-                {symptom}
-              </Badge>
-            ))}
-          </div>
-        </div>
-
-        {/* Cramps Level */}
+        {/* Pain Level */}
         <div className="space-y-3">
           <Label className="text-base font-medium">
-            Cramps level: {crampsLevel}/10
+            Pain level: {painLevel}/10
           </Label>
           <div className="flex gap-2">
             {[...Array(11)].map((_, i) => (
               <button
                 key={i}
-                onClick={() => setCrampsLevel(i)}
+                onClick={() => setPainLevel(i)}
                 className={cn(
                   "w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-all duration-200",
-                  i <= crampsLevel
+                  i <= painLevel
                     ? "bg-period text-white border-period"
                     : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 dark:text-gray-300",
-                )}
-              >
-                {i}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Energy Level */}
-        <div className="space-y-3">
-          <Label className="text-base font-medium">
-            Energy level: {energyLevel}/10
-          </Label>
-          <div className="flex gap-2">
-            {[...Array(11)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setEnergyLevel(i)}
-                className={cn(
-                  "w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-all duration-200",
-                  i <= energyLevel
-                    ? "bg-follicular text-white border-follicular"
-                    : "border-gray-200 hover:border-gray-300",
                 )}
               >
                 {i}
