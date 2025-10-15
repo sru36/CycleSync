@@ -1,37 +1,28 @@
 import { supabase } from './supabase';
-import { emailService } from './email-service';
-import type { UserProfile } from './types';
 
 export const notificationScheduler = {
   async checkAndSendNotifications() {
     try {
-      // Get all users who have enabled email reminders
+      // Get all users who have enabled notifications
       const { data: users, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('email_reminders', true);
+        .eq('email_notifications', true);
 
       if (error) throw error;
 
       if (!users || users.length === 0) {
-        console.log('No users with email reminders enabled');
+        console.log('No users with notifications enabled');
         return;
       }
 
-      // Process each user
+      // Process each user - now just log the reminder instead of sending email
       for (const user of users) {
-        const userProfile: UserProfile = {
-          ...user,
-          lastPeriodDate: new Date(user.last_period_start),
-          createdAt: new Date(user.created_at),
-          updatedAt: new Date(user.updated_at),
-        };
-
-        // Send period reminder
-        await emailService.sendPeriodReminder(userProfile);
-
-        // Send ovulation reminder
-        await emailService.sendOvulationReminder(userProfile);
+        console.log(`Period reminder for user: ${user.email}`);
+        console.log(`Ovulation reminder for user: ${user.email}`);
+        
+        // You can add other notification methods here in the future
+        // such as push notifications, in-app notifications, etc.
       }
 
       console.log('Notification check completed successfully');

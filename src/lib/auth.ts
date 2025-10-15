@@ -10,7 +10,17 @@ export const auth = {
       email,
       password,
     });
-    if (error) throw error;
+    
+    if (error) {
+      console.error('Supabase signup error:', error);
+      
+      // Handle specific error types
+      if (error.message.includes('500') || error.message.includes('unexpected_failure')) {
+        throw new Error('Server is temporarily unavailable. Please try again in a few minutes.');
+      }
+      
+      throw error;
+    }
     return data;
   },
 
@@ -128,6 +138,22 @@ export const auth = {
 
   async resendVerificationEmail(email: string) {
     const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw error;
+    return true;
+  },
+
+  async resetPassword(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?type=recovery`,
+    });
+    if (error) throw error;
+    return true;
+  },
+
+  async updatePassword(newPassword: string) {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
     if (error) throw error;
     return true;
   }
