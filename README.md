@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💛🚲 CycleSync
+# 💛🩸 CycleSync
 
 ### A modern menstrual cycle tracking web application built with React, TypeScript, and Vite.
 
