@@ -1,16 +1,53 @@
-# CycleSync
+<div align="center">
 
-> No description available
+# 💛🚲 CycleSync
 
-![GitHub stars](https://img.shields.io/github/stars/sru36/CycleSync?style=flat-square&color=ff69b4) ![GitHub forks](https://img.shields.io/github/forks/sru36/CycleSync?style=flat-square&color=87ceeb) ![Language](https://img.shields.io/github/languages/top/sru36/CycleSync?style=flat-square&color=dda0dd)
+### A modern menstrual cycle tracking web application built with React, TypeScript, and Vite.
+
+![CycleSync Banner](https://img.shields.io/badge/CycleSync-Menstrual%20Wellness-FFD43B?style=for-the-badge&logo=react&logoColor=black)
+
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-FFD43B?style=for-the-badge)](http://makeapullrequest.com)
+[![Open Source](https://img.shields.io/badge/Open%20Source-❤-FFD43B?style=for-the-badge)
+](https://github.com/ellerbrock/open-source-badges/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-FFD43B?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+</div>
+
+---
+
+## 💛 About CycleSync
+
+**CycleSync** is an open-source menstrual cycle tracking web application designed to help users track their periods, understand their cycles, and manage their reproductive health through a clean and intuitive experience.
+
+The project is currently under active development and welcomes community contributions. Our goal is to continuously improve the application, fix bugs, and build a more scalable backend architecture.
+
+> 🌟 We're actively looking for contributors who want to help make CycleSync better!
+
+---
+
+## 🚀 Tech Stack
+
+| Category | Technologies |
+|----------|--------------|
+| 🎨 Frontend | React, TypeScript, Vite |
+| 💅 Styling | Tailwind CSS |
+| 🗄️ Database & Backend | Supabase *(currently, migrating to a custom backend soon)* |
+| 🔧 Development Tools | Git, GitHub, npm |
+
+---
 
 ## ✨ Features
 
-- Feature 1: Add your key features here
-- Feature 2: Describe what makes your project special
-- Feature 3: Highlight the main functionality
+- ⚡ Lightning-fast development powered by Vite
+- 💛 Modern and responsive user interface
+- 🔐 Authentication and database integration with Supabase
+- 📱 Mobile-friendly and fully responsive design
+- 📊 Menstrual cycle tracking and insights
+- 🌙 Clean and accessible user experience
 
-## 🚀 Quick Start
+---
+
+## 🛠️ Getting Started
 
 ### Prerequisites
 
@@ -19,80 +56,104 @@
 
 ### Installation
 
+#### 1️⃣ Clone the Repository
+
 ```bash
-# Clone the repository
 git clone https://github.com/sru36/CycleSync.git
-
-# Navigate to the project directory
 cd CycleSync
+```
 
-# Install dependencies
+#### 2️⃣ Install Dependencies
+
+```bash
 npm install
 # or
 yarn install
+```
 
-# Start the development server
-npm start
+#### 3️⃣ Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+#### 4️⃣ Start Development Server
+
+```bash
+npm run dev
 # or
-yarn start
+yarn dev
 ```
 
-## 📖 Usage
-
-```javascript
-// Add usage examples here
-import { CycleSync } from './CycleSync';
-
-// Example usage
-const example = new CycleSync();
-example.run();
-```
-
-## 🛠️ Tech Stack
-
-- **Language**: TypeScript
-- **Framework**: Add your framework here
-- **Database**: Add your database here
-- **Deployment**: Add your deployment platform here
-
-## 📁 Project Structure
-
-```
-CycleSync/
-├── src/          # Source code
-├── tests/        # Test files
-├── docs/         # Documentation
-├── public/       # Public assets
-└── README.md     # You are here!
-```
+---
 
 ## 🤝 Contributing
 
-We love contributions! Here's how you can help:
+We would love your contributions!
+
+### Current Priorities
+
+- 🐛 Fix UI and logic bugs
+- 🏗️ Design and implement a better custom backend
+- ✨ Improve features and user experience
+- 📖 Enhance documentation
+
+### Contribution Steps
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create a branch
+
+```bash
+git checkout -b feature/AmazingFeature
+```
+
+3. Commit your changes
+
+```bash
+git commit -m "Add AmazingFeature"
+```
+
+4. Push your branch
+
+```bash
+git push origin feature/AmazingFeature
+```
+
 5. Open a Pull Request
+
+---
+
+## 📫 Contact
+
+<div align="center">
+
+### Connect with Me 💛
+
+💻 **GitHub:** https://github.com/sru36
+
+📧 **Email:** sruu36@gmail.com
+
+💬 **Discord:** sruxcx
+
+🔗 **Project Repository:** https://github.com/sru36/CycleSync
+
+</div>
+
+---
 
 ## 📝 License
 
-This project is currently unlicensed. Please add a license to protect your work.
-
-## 🙏 Acknowledgments
-
-- Thanks to all contributors who have helped build this project
-- Special thanks to the open source community
-- Inspired by [mention your inspirations here]
-
-## 📧 Contact
-
-- GitHub: [@sru36](https://github.com/sru36)
-- Project Link: [https://github.com/sru36/CycleSync](https://github.com/sru36/CycleSync)
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
 
 ---
 
 <div align="center">
-  Made with ❤️ by the CycleSync team
+
+### 💛 Made with love by Srushti Rawal
+
+⭐ If you like this project, consider giving it a star!
+
 </div>
